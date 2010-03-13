@@ -1,0 +1,42 @@
+FLOATING-POINT SPEED TEST PROGRAM
+
+Author: David Harper at obliquity.com
+
+This program tests the floating-point speed for three basic
+operations (addition, multiplication and division) plus
+various special functions.
+
+At the heart of the program is a loop of the form
+
+    for (i = 0; i < niters; i++)
+        for (j = 0; j < nsize; j++)
+            c[j] = a[j] OP b[j];
+
+where OP is one of '+', '*' or '/', and a, b and c are
+double precision arrays of length 'nsize'.
+
+The arrays a and b are filled with random data in the range
+[0.0, 1.0) at the start of the program, using the drand48
+function.
+
+There is a pure C implementation of the computational loop,
+which can be used with any CPU architecture, and assembler
+versions for Linux/i686 and Linux/x86_64.
+
+The driver program speedtest.c can be built with either version.
+Type
+
+	make c_speedtest
+
+to compile and link the pure C version, and
+
+	make a_speedtest
+
+to build the Pentium+GNU/Linux assembler version.
+
+Run the program with no arguments to see the run-time options.
+
+Note that the assembler version actually tests the speed with
+which the CPU can fetch two operands from memory, perform the
+arithmetic operation on them, and store the result back to
+memory.
