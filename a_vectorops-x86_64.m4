@@ -31,18 +31,18 @@
 /
 / Globals:
 /
-/ R9   saved value of *a
-/ R10  saved value of *b
-/ R11  saved value of *c
-/ EDI  saved value of nsize
-/ RSI  saved rbx
-/
-/ Within inner loop:
-/
 / RAX  *a
 / RBX  *b
 / RDX  *c
+/ EDI  saved value of nsize
+/ R9   saved rbx
+/
+/ Within inner loop:
+/
 / ECX  loop counter
+/ RSI  index variable
+
+define(`LOC',  ``('$1,%rsi,8`)'')
 	
 define(`CASE', `
         cmp     $$1,%r9d
@@ -51,36 +51,31 @@ define(`CASE', `
 define(`PROLOG',`
 	.align	4
 .L$1:
-	mov	%rdi,%r9
-	mov	%rsi,%r10
-	mov	%rdx,%r11
+	movq	%rbx,%r9
+
+	movq	%rdi,%rax
+	movq	%rsi,%rbx
+	movq	%rdx,%rdx
 
 	movl	%ecx,%edi
-
-	mov	%rbx,%rsi
 
 .L$1OuterLoop:
 	movl	%edi,%ecx
 
-	mov	%r9,%rax
-	mov	%r10,%rbx
-	mov	%r11,%rdx
-
+	xorq	%rsi,%rsi
 .L$1InnerLoop:')
 
 define(`EPILOG',`
-	add	$`'8,%rax
-	add	$`'8,%rbx
-	add	$`'8,%rdx
+	incq	%rsi
 
 	loop	.L$1InnerLoop
 
 	dec	%r8d
 	jnz	.L$1OuterLoop
 
-	mov	%rsi,%rbx
+	movq	%r9,%rbx
 
-	mov	$`'1,%rax
+	movq	$`'1,%rax
 
 	ret')
 
@@ -95,9 +90,7 @@ vectorOps:
 	testl	%ecx,%ecx
 	jg	.L1
 
-	movl	$.STR1,%eax
-	movq	%rax,%rdi
-	call	puts
+	xor	%eax,%eax
 
 	ret
 .L1:
@@ -106,9 +99,7 @@ vectorOps:
 	testl	%r8d,%r8d
 	jg	.L2
 
-	movl	$.STR2,%eax
-	movq	%rax,%rdi
-	call	puts
+	xor	%eax,%eax
 
 	ret
 .L2:
@@ -131,73 +122,63 @@ vectorOps:
 	EPILOG(nop)
 
 	PROLOG(add)
-	fldl	(%rax)
-	faddl	(%rbx)
-	fstpl	(%rdx)
+	fldl	LOC(%rax)
+	faddl	LOC(%rbx)
+	fstpl	LOC(%rdx)
 	EPILOG(add)
 
 	PROLOG(multiply)
-	fldl	(%rax)
-	fmull	(%rbx)
-	fstpl	(%rdx)
+	fldl	LOC(%rax)
+	fmull	LOC(%rbx)
+	fstpl	LOC(%rdx)
 	EPILOG(multiply)
 
 	PROLOG(divide)
-	fldl	(%rax)
-	fdivrl	(%rbx)
-	fstpl	(%rdx)
+	fldl	LOC(%rax)
+	fdivrl	LOC(%rbx)
+	fstpl	LOC(%rdx)
 	EPILOG(divide)
 
 	PROLOG(cosine)
-	fldl	(%rax)
+	fldl	LOC(%rax)
 	fcos
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(cosine)
 
 	PROLOG(sqrt)
-	fldl	(%rax)
+	fldl	LOC(%rax)
 	fsqrt
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(sqrt)
 
 	PROLOG(atan)
-	fldl	(%rax)
-	fldl	(%rbx)
+	fldl	LOC(%rax)
+	fldl	LOC(%rbx)
 	fpatan
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(atan)
 
 	PROLOG(ylogx)
-	fldl	(%rax)
-	fldl	(%rbx)
+	fldl	LOC(%rax)
+	fldl	LOC(%rbx)
 	fyl2x
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(ylogx)
 
 	PROLOG(sincos)
-	fldl	(%rax)
+	fldl	LOC(%rax)
 	fsincos
-	fstpl	(%rdx)
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(sincos)
 
 	PROLOG(exp)
-	fldl	(%rax)
+	fldl	LOC(%rax)
 	f2xm1
-	fstpl	(%rdx)
+	fstpl	LOC(%rdx)
 	EPILOG(exp)
 
 .Lend:
 	.size	vectorOps,.Lend-vectorOps
-
-	.section	.rodata
-
-	.align	8
-.STR1:
-	.string	"niters was non-positive\n"
-
-	.align	8
-.STR2:
-	.string	"nsize was non-positive\n"
 
 	.ident	"David Harper at www.obliquity.com"
