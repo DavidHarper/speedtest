@@ -4,18 +4,28 @@
 /
 / C prototype:
 /
-/ int vectorOps(double *a, double *b, double *c, int nsize,
+/ int vectorOps(void *a, void *b, void *c, int nsize,
 /		int niters, int mode)
 /
-/ mode = 0 --> NOP
-/	 1 --> ADD
-/	 2 --> MULTIPLY
-/	 3 --> DIVIDE
-/	 4 --> COSINE
-/	 5 --> SQRT
-/	 6 --> ATAN2
-/	 7 --> Y LOG2(X)
-/	 8 --> SINCOS
+/ FLOATING POINT
+/ mode =  0 --> NOP
+/	  1 --> ADD
+/	  2 --> MULTIPLY
+/	  3 --> DIVIDE
+/	  4 --> COSINE
+/	  5 --> SQRT
+/	  6 --> ATAN2
+/	  7 --> Y LOG2(X)
+/	  8 --> SINCOS
+/	  9 --> 2^X - 1
+/
+/ INTEGER
+/ mode = 10 --> NOP
+/	 11 --> FETCH
+/	 12 --> FETCH AND STORE
+/	 13 --> ADD
+/	 14 --> MULTIPLY
+/	 15 --> DIVIDE
 
 / Register usage
 / --------------
@@ -48,7 +58,9 @@ define(`CASE', `
         cmp     $$1,%r9d
         je      .L$2')
 
-define(`PROLOG',`
+/----- Floating-point loop prolog and epilog -----
+
+define(`FP_PROLOG',`
 	.align	4
 .L$1:
 	movq	%rbx,%r9
@@ -65,7 +77,7 @@ define(`PROLOG',`
 	xorq	%rsi,%rsi
 .L$1InnerLoop:')
 
-define(`EPILOG',`
+define(`FP_EPILOG',`
 	incq	%rsi
 
 	loop	.L$1InnerLoop
@@ -78,6 +90,42 @@ define(`EPILOG',`
 	movq	$`'1,%rax
 
 	ret')
+
+/----- Integer loop prolog and epilog -----
+
+define(`INT_PROLOG',`
+	.align	4
+.L$1:
+	movq	%rbx,%r9
+
+	movq	%rdi,%rax
+	movq	%rsi,%rbx
+	movq	%rdx,%rdx
+
+	movl	%ecx,%edi
+
+.L$1OuterLoop:
+	movl	%edi,%ecx
+
+	xorq	%rsi,%rsi
+.L$1InnerLoop:')
+
+define(`INT_EPILOG',`
+	incq	%rsi
+
+	loop	.L$1InnerLoop
+
+	dec	%r8d
+	jnz	.L$1OuterLoop
+
+	movq	%r9,%rbx
+
+	movq	$`'1,%rax
+
+	ret')
+
+
+/----- The code begins here -----
 
 	.text
 
@@ -115,68 +163,109 @@ vectorOps:
 	CASE(8, sincos)
 	CASE(9, exp)
 
+	CASE(10, inop)
+	CASE(11, ifetch)
+	CASE(12, istore)
+	CASE(13, ifetchandstore)
+	CASE(14, iadd)
+	CASE(15, imultiply)
+	CASE(16, idivide)
+
 /	mode lies outside the range, so exit
 	ret
 
-	PROLOG(nop)
-	EPILOG(nop)
+/----- Floating-point tests -----
 
-	PROLOG(add)
+	FP_PROLOG(nop)
+	FP_EPILOG(nop)
+
+	FP_PROLOG(add)
 	fldl	LOC(%rax)
 	faddl	LOC(%rbx)
 	fstpl	LOC(%rdx)
-	EPILOG(add)
+	FP_EPILOG(add)
 
-	PROLOG(multiply)
+	FP_PROLOG(multiply)
 	fldl	LOC(%rax)
 	fmull	LOC(%rbx)
 	fstpl	LOC(%rdx)
-	EPILOG(multiply)
+	FP_EPILOG(multiply)
 
-	PROLOG(divide)
+	FP_PROLOG(divide)
 	fldl	LOC(%rax)
 	fdivrl	LOC(%rbx)
 	fstpl	LOC(%rdx)
-	EPILOG(divide)
+	FP_EPILOG(divide)
 
-	PROLOG(cosine)
+	FP_PROLOG(cosine)
 	fldl	LOC(%rax)
 	fcos
 	fstpl	LOC(%rdx)
-	EPILOG(cosine)
+	FP_EPILOG(cosine)
 
-	PROLOG(sqrt)
+	FP_PROLOG(sqrt)
 	fldl	LOC(%rax)
 	fsqrt
 	fstpl	LOC(%rdx)
-	EPILOG(sqrt)
+	FP_EPILOG(sqrt)
 
-	PROLOG(atan)
+	FP_PROLOG(atan)
 	fldl	LOC(%rax)
 	fldl	LOC(%rbx)
 	fpatan
 	fstpl	LOC(%rdx)
-	EPILOG(atan)
+	FP_EPILOG(atan)
 
-	PROLOG(ylogx)
+	FP_PROLOG(ylogx)
 	fldl	LOC(%rax)
 	fldl	LOC(%rbx)
 	fyl2x
 	fstpl	LOC(%rdx)
-	EPILOG(ylogx)
+	FP_EPILOG(ylogx)
 
-	PROLOG(sincos)
+	FP_PROLOG(sincos)
 	fldl	LOC(%rax)
 	fsincos
 	fstpl	LOC(%rdx)
 	fstpl	LOC(%rdx)
-	EPILOG(sincos)
+	FP_EPILOG(sincos)
 
-	PROLOG(exp)
+	FP_PROLOG(exp)
 	fldl	LOC(%rax)
 	f2xm1
 	fstpl	LOC(%rdx)
-	EPILOG(exp)
+	FP_EPILOG(exp)
+
+/----- Integer tests -----
+
+	INT_PROLOG(inop)
+	nop
+	INT_EPILOG(inop)
+
+	INT_PROLOG(ifetch)
+	movq	LOC(%rax),%r10
+	INT_EPILOG(ifetch)
+
+	INT_PROLOG(istore)
+	movq	%rsi,LOC(%rdx)
+	INT_EPILOG(istore)
+
+	INT_PROLOG(ifetchandstore)
+	movq	LOC(%rax),%r10
+	movq	%r10,LOC(%rdx)
+	INT_EPILOG(ifetchandstore)
+
+	INT_PROLOG(iadd)
+	movq	LOC(%rax),%r10
+	addq	LOC(%rbx),%r10
+	movq	%r10,LOC(%rdx)
+	INT_EPILOG(iadd)
+
+	INT_PROLOG(imultiply)
+	INT_EPILOG(imultiply)
+
+	INT_PROLOG(idivide)
+	INT_EPILOG(idivide)
 
 .Lend:
 	.size	vectorOps,.Lend-vectorOps

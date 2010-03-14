@@ -1,54 +1,124 @@
 #include "vectorops.h"
 #include <math.h>
 
-static void vectorNop(double *a, double *b, double *c, int nsize) {
+static void vectorFPNop(double *a, double *b, double *c, int nsize) {
   int j;
   for (j = nsize; j >0; j--) {
     a++; b++; c++;
   }
 }
 
-static void vectorSum(double *a, double *b, double *c, int nsize) {
+static void vectorFPSum(double *a, double *b, double *c, int nsize) {
   int j;
   for (j = nsize; j >0; j--)
     *(c++) = *(a++) + *(b++);
 }
 
-static void vectorMultiply(double *a, double *b, double *c, int nsize) {
+static void vectorFPMultiply(double *a, double *b, double *c, int nsize) {
   int j;
   for (j = nsize; j >0; j--)
     *(c++) = *(a++) * *(b++);
 }
 
-static void vectorDivide(double *a, double *b, double *c, int nsize) {
+static void vectorFPDivide(double *a, double *b, double *c, int nsize) {
   int j;
   for (j = nsize; j >0; j--)
     *(c++) = *(a++) / *(b++);
 }
 
-int vectorOps(double *a, double *b, double *c, int nsize,
+static void vectorFPSqrt(double *a, double *b, double *c, int nsize) {
+  int j;
+  for (j = nsize; j >0; j--)
+    *(c++) = sqrt(*(a++));
+}
+
+static void vectorFPCosine(double *a, double *b, double *c, int nsize) {
+  int j;
+  for (j = nsize; j >0; j--)
+    *(c++) = cos(*(a++));
+}
+
+static void vectorFPAtan2(double *a, double *b, double *c, int nsize) {
+  int j;
+  for (j = nsize; j >0; j--)
+    *(c++) = atan2(*(a++), *(b++));
+}
+
+static void vectorFPYlogx(double *a, double *b, double *c, int nsize) {
+  int j;
+  for (j = nsize; j >0; j--)
+    *(c++) = *(a++) * log(*(b++));
+}
+
+static void vectorFPSincos(double *a, double *b, double *c, int nsize) {
+  int j;
+  double d;
+
+  for (j = nsize; j >0; j--) {
+    d = sin(*a);
+    *(c++) = cos(*(a++));
+  }
+}
+
+static void vectorFPBexp(double *a, double *b, double *c, int nsize) {
+  int j;
+  for (j = nsize; j >0; j--)
+    *(c++) = exp2(*(a++));
+}
+
+int vectorOps(void *a, void *b, void *c, int nsize,
 	       int niters, int nmode) {
   int j;
 
   switch (nmode) {
-  case VECTOR_NOP:
+  case VECTOR_FP_NOP:
     for (j = niters; j > 0; j--)
-      vectorNop(a, b, c, nsize);
+      vectorFPNop((double *)a, (double *)b, (double *)c, nsize);
     break;
 
-  case VECTOR_ADD:
+  case VECTOR_FP_ADD:
     for (j = niters; j > 0; j--)
-      vectorSum(a, b, c, nsize);
+      vectorFPSum((double *)a, (double *)b, (double *)c, nsize);
     break;
 
-  case VECTOR_MULTIPLY:
+  case VECTOR_FP_MULTIPLY:
     for (j = niters; j > 0; j--)
-      vectorMultiply(a, b, c, nsize);
+      vectorFPMultiply((double *)a, (double *)b, (double *)c, nsize);
     break;
 
-  case VECTOR_DIVIDE:
+  case VECTOR_FP_DIVIDE:
     for (j = niters; j > 0; j--)
-      vectorDivide(a, b, c, nsize);
+      vectorFPDivide((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_SQRT:
+    for (j = niters; j > 0; j--)
+      vectorFPSqrt((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_COSINE:
+    for (j = niters; j > 0; j--)
+      vectorFPCosine((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_ATAN2:
+    for (j = niters; j > 0; j--)
+      vectorFPAtan2((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_YLOGX:
+    for (j = niters; j > 0; j--)
+      vectorFPYlogx((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_SINCOS:
+    for (j = niters; j > 0; j--)
+      vectorFPSincos((double *)a, (double *)b, (double *)c, nsize);
+    break;
+
+  case VECTOR_FP_BEXP:
+    for (j = niters; j > 0; j--)
+      vectorFPBexp((double *)a, (double *)b, (double *)c, nsize);
     break;
 
   default:

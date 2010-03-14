@@ -17,6 +17,7 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "\n");
   fprintf(fp, "OPTIONAL PARAMETERS:\n");
   fprintf(fp, "-mode\t\tMode to test\n\n");
+  fprintf(fp, "\tFLOATING POINT\n");
   fprintf(fp, "\tMode\tOperation\n");
   fprintf(fp, "\t  1\tADD\n");
   fprintf(fp, "\t  2\tMULTIPLY\n");
@@ -27,6 +28,16 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "\t  7\tY LOG2(X)\n");
   fprintf(fp, "\t  8\tSINCOS\n");
   fprintf(fp, "\t  9\t2^X - 1\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "\tINTEGER\n");
+  fprintf(fp, "\tMode\tOperation\n");
+  fprintf(fp, "\t 11\tFETCH\n");
+  fprintf(fp, "\t 12\tSTORE\n");
+  fprintf(fp, "\t 13\tFETCH AND STORE\n");
+  fprintf(fp, "\t 14\tADD\n");
+  fprintf(fp, "\t 15\tMULTIPLY\n");
+  fprintf(fp, "\t 16\tDIVIDE\n");
+
 }
 
 static void printMessage() {
@@ -47,7 +58,7 @@ static long timeInterval(struct rusage *ru1, struct rusage *ru2) {
     (1000000L * (long)ru1->ru_utime.tv_sec + (long)ru1->ru_utime.tv_usec);
 }
 
-static int executeSpeedTest(double *a, double *b, double *c, int nsize,
+static int executeFPSpeedTest(double *a, double *b, double *c, int nsize,
 			     int niters, int mode, FILE *fp) {
   struct rusage ru1, ru2, ru3;
   char *opname;
@@ -59,39 +70,39 @@ static int executeSpeedTest(double *a, double *b, double *c, int nsize,
   long dt12,dt23;
 
   switch (mode) {
-  case VECTOR_ADD:
+  case VECTOR_FP_ADD:
     opname = "additions";
     break;
 
-  case VECTOR_MULTIPLY:
+  case VECTOR_FP_MULTIPLY:
     opname = "multiplications";
     break;
 
-  case VECTOR_DIVIDE:
+  case VECTOR_FP_DIVIDE:
     opname = "divisions";
     break;
 
-  case VECTOR_COSINE:
+  case VECTOR_FP_COSINE:
     opname = "cosines";
     break;
 
-  case VECTOR_SQRT:
+  case VECTOR_FP_SQRT:
     opname = "square roots";
     break;
 
-  case VECTOR_ATAN2:
+  case VECTOR_FP_ATAN2:
     opname = "arc-tangents";
     break;
 
-  case VECTOR_YLOGX:
+  case VECTOR_FP_YLOGX:
     opname = "y.log2(x) operations";
     break;
 
-  case VECTOR_SINCOS:
+  case VECTOR_FP_SINCOS:
     opname = "combined sine/cosines";
     break;
 
-  case VECTOR_BEXP:
+  case VECTOR_FP_BEXP:
     opname = "binary exponentials";
     break;
 
@@ -106,7 +117,7 @@ static int executeSpeedTest(double *a, double *b, double *c, int nsize,
 
   getrusage(RUSAGE_SELF, &ru2);
 
-  rc2 = vectorOps(a, b, c, nsize, niters, VECTOR_NOP);
+  rc2 = vectorOps(a, b, c, nsize, niters, VECTOR_FP_NOP);
 
   getrusage(RUSAGE_SELF, &ru3);
 
@@ -131,10 +142,162 @@ static int executeSpeedTest(double *a, double *b, double *c, int nsize,
   return rc1;
 }
 
+static void executeFloatingPointTests(int mode, int nsize, int niters) {
+  double *a, *b, *c;
+  int j;
+
+  printf("EXECUTING FLOATING POINT SPEED TESTS\n");
+
+  printf("Allocating data arrays ...");
+  fflush(stdout);
+
+  a = (double *)calloc((size_t)nsize, sizeof(double));
+  b = (double *)calloc((size_t)nsize, sizeof(double));
+  c = (double *)calloc((size_t)nsize, sizeof(double));
+
+  printf(" done.\nSetting input arrays to random number ...");
+  fflush(stdout);
+
+  for (j = 0; j < nsize; j++) {
+    a[j] = drand48();
+    b[j] = drand48();
+  }
+
+  printf(" done.\n\n");
+  fflush(stdout);
+
+  if (mode == VECTOR_FP_NOP) {
+    printf("Running ALL speed tests.\n\n");
+
+    for (mode = VECTOR_FP_FIRST; mode <= VECTOR_FP_LAST; mode++) {
+      if (executeFPSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
+	printf("\n");
+    }
+  } else {
+    executeFPSpeedTest(a, b, c, nsize, niters, mode, stdout);
+  }
+
+  free(a);
+  free(b);
+  free(c);
+}
+
+
+static int executeIntegerSpeedTest(long int *a, long int *b, long int *c, int nsize,
+			     int niters, int mode, FILE *fp) {
+  struct rusage ru1, ru2, ru3;
+  char *opname;
+  double mflops;
+  long ticks;
+  double dticks;
+  double dops;
+  int rc1, rc2;
+  long dt12,dt23;
+
+  switch (mode) {
+  case VECTOR_INT64_ADD:
+    opname = "additions";
+    break;
+
+  case VECTOR_INT64_MULTIPLY:
+    opname = "multiplications";
+    break;
+
+  case VECTOR_INT64_DIVIDE:
+    opname = "divisions";
+    break;
+
+  case VECTOR_INT64_FETCH:
+    opname = "fetches";
+    break;
+
+  case VECTOR_INT64_STORE:
+    opname = "stores";
+    break;
+
+  case VECTOR_INT64_FETCH_AND_STORE:
+    opname = "fetches and stores";
+    break;
+
+  default:
+    opname = "unknown operations";
+    break;
+  }
+
+  getrusage(RUSAGE_SELF, &ru1);
+
+  rc1 = vectorOps(a, b, c, nsize, niters, mode);
+
+  getrusage(RUSAGE_SELF, &ru2);
+
+  rc2 = vectorOps(a, b, c, nsize, niters, VECTOR_INT64_NOP);
+
+  getrusage(RUSAGE_SELF, &ru3);
+
+  if (rc1 == 0 || rc2 == 0)
+    return 0L;
+
+  dt12 = timeInterval(&ru1, &ru2);
+
+  dt23 = timeInterval(&ru2, &ru3);
+
+  ticks = dt12 - dt23;
+  dticks = (double)ticks;
+
+  dops = (double)nsize * (double)niters;
+
+  mflops = dops/dticks;
+
+  fprintf(fp, "It took %.3lf seconds to perform %.3lf million %s.\n", dticks/1.0e6, dops/1.0e6, opname);
+
+  fprintf(fp, "That corresponds to %.3lf mops.\n", mflops);
+
+  return rc1;
+}
+
+static void executeIntegerTests(int mode, int nsize, int niters) {
+  long int *a, *b, *c;
+  int j;
+
+  printf("EXECUTING INTEGER SPEED TESTS\n");
+
+  printf("Allocating data arrays ...");
+  fflush(stdout);
+
+  a = (long int *)calloc((size_t)nsize, sizeof(long int));
+  b = (long int *)calloc((size_t)nsize, sizeof(long int));
+  c = (long int *)calloc((size_t)nsize, sizeof(long int));
+
+  printf(" done.\nSetting input arrays to random number ...");
+  fflush(stdout);
+
+  for (j = 0; j < nsize; j++) {
+    a[j] = mrand48() << 32 | mrand48();
+    b[j] = mrand48() << 32 | mrand48();
+  }
+
+  printf(" done.\n\n");
+  fflush(stdout);
+
+  if (mode == VECTOR_INT64_NOP) {
+    printf("Running ALL speed tests.\n\n");
+
+    for (mode = VECTOR_INT64_FIRST; mode <= VECTOR_INT64_LAST; mode++) {
+      if (executeIntegerSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
+	printf("\n");
+    }
+  } else {
+    executeIntegerSpeedTest(a, b, c, nsize, niters, mode, stdout);
+  }
+
+  free(a);
+  free(b);
+  free(c);
+}
+
 int main(int argc, char **argv) {
   int nsize = 0;
   int niters = 0;
-  double *a, *b, *c;
   int j;
   int mode = 0;
 
@@ -156,34 +319,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  printf("Allocating data arrays ...");
-  fflush(stdout);
-
-  a = (double *)calloc((size_t)nsize, sizeof(double));
-  b = (double *)calloc((size_t)nsize, sizeof(double));
-  c = (double *)calloc((size_t)nsize, sizeof(double));
-
-  printf(" done.\nSetting input arrays to random number ...");
-  fflush(stdout);
-
-  for (j = 0; j < nsize; j++) {
-    a[j] = drand48();
-    b[j] = drand48();
-  }
-
-  printf(" done.\n\n");
-  fflush(stdout);
-
-  if (mode >0 && mode < 10) {
-    executeSpeedTest(a, b, c, nsize, niters, mode, stdout);
-  } else {
-    printf("Running ALL speed tests.\n\n");
-
-    for (mode = 1; mode < 10; mode++) {
-      if (executeSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
-	printf("\n");
-    }
-  }
+  if (mode >= VECTOR_FP_NOP && mode <= VECTOR_FP_LAST)
+    executeFloatingPointTests(mode, nsize, niters);
+  else if (mode >= VECTOR_INT64_NOP && mode <= VECTOR_INT64_LAST)
+    executeIntegerTests(mode, nsize, niters);
 
   return 0;
 }
+
+
