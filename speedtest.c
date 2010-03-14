@@ -34,7 +34,8 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "\t 11\tFETCH\n");
   fprintf(fp, "\t 12\tSTORE\n");
   fprintf(fp, "\t 13\tFETCH AND STORE\n");
-  fprintf(fp, "\t 14\tADD\n");
+  fprintf(fp, "\t 14\tADD AND STORE\n");
+  fprintf(fp, "\t 15\tSUM\n");
   fprintf(fp, "\t 15\tMULTIPLY\n");
   fprintf(fp, "\t 16\tDIVIDE\n");
 
@@ -196,7 +197,11 @@ static int executeIntegerSpeedTest(long int *a, long int *b, long int *c, int ns
 
   switch (mode) {
   case VECTOR_INT64_ADD:
-    opname = "additions";
+    opname = "add-and-stores";
+    break;
+
+  case VECTOR_INT64_SUM:
+    opname = "sums";
     break;
 
   case VECTOR_INT64_MULTIPLY:

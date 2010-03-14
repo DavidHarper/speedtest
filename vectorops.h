@@ -22,10 +22,11 @@ int vectorOps(void *a, void *b, void *c, int nsize,
 #define VECTOR_INT64_STORE 12
 #define VECTOR_INT64_FETCH_AND_STORE 13
 #define VECTOR_INT64_ADD 14
-#define VECTOR_INT64_MULTIPLY 15
-#define VECTOR_INT64_DIVIDE 16
+#define VECTOR_INT64_SUM 15
+#define VECTOR_INT64_MULTIPLY 16
+#define VECTOR_INT64_DIVIDE 17
 
 #define VECTOR_INT64_FIRST 11
-#define VECTOR_INT64_LAST 14
+#define VECTOR_INT64_LAST 15
 
 #endif

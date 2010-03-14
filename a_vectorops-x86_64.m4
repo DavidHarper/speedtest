@@ -107,6 +107,7 @@ define(`INT_PROLOG',`
 .L$1OuterLoop:
 	movl	%edi,%ecx
 
+	xorq	%r10,%r10
 	xorq	%rsi,%rsi
 .L$1InnerLoop:')
 
@@ -168,8 +169,9 @@ vectorOps:
 	CASE(12, istore)
 	CASE(13, ifetchandstore)
 	CASE(14, iadd)
-	CASE(15, imultiply)
-	CASE(16, idivide)
+	CASE(15, isum)
+	CASE(16, imultiply)
+	CASE(17, idivide)
 
 /	mode lies outside the range, so exit
 	ret
@@ -260,6 +262,10 @@ vectorOps:
 	addq	LOC(%rbx),%r10
 	movq	%r10,LOC(%rdx)
 	INT_EPILOG(iadd)
+
+	INT_PROLOG(isum)
+	addq	LOC(%rax),%r10
+	INT_EPILOG(isum)
 
 	INT_PROLOG(imultiply)
 	INT_EPILOG(imultiply)
