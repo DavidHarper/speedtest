@@ -27,6 +27,6 @@ int vectorOps(void *a, void *b, void *c, int nsize,
 #define VECTOR_INT64_DIVIDE 17
 
 #define VECTOR_INT64_FIRST 11
-#define VECTOR_INT64_LAST 15
+#define VECTOR_INT64_LAST 17
 
 #endif

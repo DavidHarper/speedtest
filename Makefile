@@ -29,11 +29,11 @@ C_SPEEDTEST_OBJS = c_vectorops.o
 
 TAR_CONTENTS = speedtest.c a_vectorops.m4 c_vectorops.c vectorops.h Makefile README
 
-c_speedtest: $(SHARED_OBJS) $(C_SPEEDTEST_OBJS)
-	$(LD) $(DEBUG) -o $@ $(SHARED_OBJS) $(C_SPEEDTEST_OBJS) $(LDLIBS)
-
 a_speedtest: $(SHARED_OBJS) $(A_SPEEDTEST_OBJS)
 	$(LD) $(DEBUG) -o $@ $(SHARED_OBJS) $(A_SPEEDTEST_OBJS)
+
+c_speedtest: $(SHARED_OBJS) $(C_SPEEDTEST_OBJS)
+	$(LD) $(DEBUG) -o $@ $(SHARED_OBJS) $(C_SPEEDTEST_OBJS) $(LDLIBS)
 
 a_vectorops.s: a_vectorops-$(ARCH).m4
 	$(M4) a_vectorops-$(ARCH).m4 > a_vectorops.s

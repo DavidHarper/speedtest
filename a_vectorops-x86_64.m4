@@ -41,18 +41,19 @@
 /
 / Globals:
 /
-/ RAX  *a
-/ RBX  *b
-/ RDX  *c
-/ EDI  saved value of nsize
-/ R9   saved rbx
+/ R9   *a
+/ R10  *b
+/ R11  *c
+/ R12  saved value of nsize
 /
 / Within inner loop:
 /
 / ECX  loop counter
 / RSI  index variable
 
-define(`LOC',  ``('$1,%rsi,8`)'')
+define(`SRCA',	``('%r9,%rsi,8`)'')
+define(`SRCB',	``('%r10,%rsi,8`)'')
+define(`DEST',	``('%r11,%rsi,8`)'')
 	
 define(`CASE', `
         cmp     $$1,%r9d
@@ -63,16 +64,17 @@ define(`CASE', `
 define(`FP_PROLOG',`
 	.align	4
 .L$1:
-	movq	%rbx,%r9
+	push	%rbx
+	push	%r12
 
-	movq	%rdi,%rax
-	movq	%rsi,%rbx
-	movq	%rdx,%rdx
+	movq	%rdi,%r9
+	movq	%rsi,%r10
+	movq	%rdx,%r11
 
-	movl	%ecx,%edi
+	movl	%ecx,%r12d
 
 .L$1OuterLoop:
-	movl	%edi,%ecx
+	movl	%r12d,%ecx
 
 	xorq	%rsi,%rsi
 .L$1InnerLoop:')
@@ -85,7 +87,8 @@ define(`FP_EPILOG',`
 	dec	%r8d
 	jnz	.L$1OuterLoop
 
-	movq	%r9,%rbx
+	pop	%r12
+	pop	%rbx
 
 	movq	$`'1,%rax
 
@@ -96,18 +99,18 @@ define(`FP_EPILOG',`
 define(`INT_PROLOG',`
 	.align	4
 .L$1:
-	movq	%rbx,%r9
+	push	%rbx
+	push	%r12
 
-	movq	%rdi,%rax
-	movq	%rsi,%rbx
-	movq	%rdx,%rdx
+	movq	%rdi,%r9
+	movq	%rsi,%r10
+	movq	%rdx,%r11
 
-	movl	%ecx,%edi
+	movl	%ecx,%r12d
 
 .L$1OuterLoop:
-	movl	%edi,%ecx
+	movl	%r12d,%ecx
 
-	xorq	%r10,%r10
 	xorq	%rsi,%rsi
 .L$1InnerLoop:')
 
@@ -119,7 +122,8 @@ define(`INT_EPILOG',`
 	dec	%r8d
 	jnz	.L$1OuterLoop
 
-	movq	%r9,%rbx
+	pop	%r12
+	pop	%rbx
 
 	movq	$`'1,%rax
 
@@ -182,60 +186,60 @@ vectorOps:
 	FP_EPILOG(nop)
 
 	FP_PROLOG(add)
-	fldl	LOC(%rax)
-	faddl	LOC(%rbx)
-	fstpl	LOC(%rdx)
+	fldl	SRCA
+	faddl	SRCB
+	fstpl	DEST
 	FP_EPILOG(add)
 
 	FP_PROLOG(multiply)
-	fldl	LOC(%rax)
-	fmull	LOC(%rbx)
-	fstpl	LOC(%rdx)
+	fldl	SRCA
+	fmull	SRCB
+	fstpl	DEST
 	FP_EPILOG(multiply)
 
 	FP_PROLOG(divide)
-	fldl	LOC(%rax)
-	fdivrl	LOC(%rbx)
-	fstpl	LOC(%rdx)
+	fldl	SRCA
+	fdivrl	SRCB
+	fstpl	DEST
 	FP_EPILOG(divide)
 
 	FP_PROLOG(cosine)
-	fldl	LOC(%rax)
+	fldl	SRCA
 	fcos
-	fstpl	LOC(%rdx)
+	fstpl	DEST
 	FP_EPILOG(cosine)
 
 	FP_PROLOG(sqrt)
-	fldl	LOC(%rax)
+	fldl	SRCA
 	fsqrt
-	fstpl	LOC(%rdx)
+	fstpl	DEST
 	FP_EPILOG(sqrt)
 
 	FP_PROLOG(atan)
-	fldl	LOC(%rax)
-	fldl	LOC(%rbx)
+	fldl	SRCA
+	fldl	SRCB
 	fpatan
-	fstpl	LOC(%rdx)
+	fstpl	DEST
 	FP_EPILOG(atan)
 
 	FP_PROLOG(ylogx)
-	fldl	LOC(%rax)
-	fldl	LOC(%rbx)
+	fldl	SRCA
+	fldl	SRCB
 	fyl2x
-	fstpl	LOC(%rdx)
+	fstpl	DEST
 	FP_EPILOG(ylogx)
 
 	FP_PROLOG(sincos)
-	fldl	LOC(%rax)
+	fldl	SRCA
 	fsincos
-	fstpl	LOC(%rdx)
-	fstpl	LOC(%rdx)
+	fstpl	DEST
+	fstpl	DEST
 	FP_EPILOG(sincos)
 
 	FP_PROLOG(exp)
-	fldl	LOC(%rax)
+	fldl	SRCA
 	f2xm1
-	fstpl	LOC(%rdx)
+	fstpl	DEST
 	FP_EPILOG(exp)
 
 /----- Integer tests -----
@@ -245,32 +249,37 @@ vectorOps:
 	INT_EPILOG(inop)
 
 	INT_PROLOG(ifetch)
-	movq	LOC(%rax),%r10
+	movq	SRCA,%rax
 	INT_EPILOG(ifetch)
 
 	INT_PROLOG(istore)
-	movq	%rsi,LOC(%rdx)
+	movq	%rsi,DEST
 	INT_EPILOG(istore)
 
 	INT_PROLOG(ifetchandstore)
-	movq	LOC(%rax),%r10
-	movq	%r10,LOC(%rdx)
+	movq	SRCA,%rax
+	movq	%rax,DEST
 	INT_EPILOG(ifetchandstore)
 
 	INT_PROLOG(iadd)
-	movq	LOC(%rax),%r10
-	addq	LOC(%rbx),%r10
-	movq	%r10,LOC(%rdx)
+	movq	SRCA,%rax
+	addq	SRCB,%rax
+	movq	%rax,DEST
 	INT_EPILOG(iadd)
 
 	INT_PROLOG(isum)
-	addq	LOC(%rax),%r10
+	addq	SRCA,%rax
 	INT_EPILOG(isum)
 
 	INT_PROLOG(imultiply)
+	movq	SRCA,%rax
+	mulq	SRCB
 	INT_EPILOG(imultiply)
 
 	INT_PROLOG(idivide)
+	xorq	%rdx,%rdx
+	movq	SRCA,%rax
+	divq	SRCB
 	INT_EPILOG(idivide)
 
 .Lend:
