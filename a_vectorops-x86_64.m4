@@ -112,6 +112,7 @@ define(`INT_PROLOG',`
 	movl	%r12d,%ecx
 
 	xorq	%rsi,%rsi
+	xorq	%rax,%rax
 .L$1InnerLoop:')
 
 define(`INT_EPILOG',`
