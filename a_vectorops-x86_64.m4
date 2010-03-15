@@ -21,11 +21,14 @@
 /
 / INTEGER
 / mode = 10 --> NOP
-/	 11 --> FETCH
-/	 12 --> FETCH AND STORE
-/	 13 --> ADD
-/	 14 --> MULTIPLY
-/	 15 --> DIVIDE
+/	 11 --> SEQUENTIAL FETCH
+/        12 --> RANDOM FETCH
+/        13 --> STORE
+/	 14 --> FETCH AND STORE
+/	 15 --> ADD
+/        16 --> SUM
+/	 17 --> MULTIPLY
+/	 18 --> DIVIDE
 
 / Register usage
 / --------------
@@ -87,10 +90,11 @@ define(`FP_EPILOG',`
 	dec	%r8d
 	jnz	.L$1OuterLoop
 
+	movl	%r12d,%eax
+	cltq
+
 	pop	%r12
 	pop	%rbx
-
-	movq	$`'1,%rax
 
 	ret')
 
@@ -123,10 +127,11 @@ define(`INT_EPILOG',`
 	dec	%r8d
 	jnz	.L$1OuterLoop
 
+	movl	%r12d,%eax
+	cltq
+
 	pop	%r12
 	pop	%rbx
-
-	movq	$`'1,%rax
 
 	ret')
 
@@ -171,12 +176,13 @@ vectorOps:
 
 	CASE(10, inop)
 	CASE(11, ifetch)
-	CASE(12, istore)
-	CASE(13, ifetchandstore)
-	CASE(14, iadd)
-	CASE(15, isum)
-	CASE(16, imultiply)
-	CASE(17, idivide)
+	CASE(12, irandomfetch)
+	CASE(13, istore)
+	CASE(14, ifetchandstore)
+	CASE(15, iadd)
+	CASE(16, isum)
+	CASE(17, imultiply)
+	CASE(18, idivide)
 
 /	mode lies outside the range, so exit
 	ret
@@ -252,6 +258,10 @@ vectorOps:
 	INT_PROLOG(ifetch)
 	movq	SRCA,%rax
 	INT_EPILOG(ifetch)
+
+	INT_PROLOG(irandomfetch)
+	movq	SRCA,%rsi
+	INT_EPILOG(irandomfetch)
 
 	INT_PROLOG(istore)
 	movq	%rsi,DEST

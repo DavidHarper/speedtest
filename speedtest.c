@@ -213,7 +213,11 @@ static int executeIntegerSpeedTest(long int *a, long int *b, long int *c, int ns
     break;
 
   case VECTOR_INT64_FETCH:
-    opname = "fetches";
+    opname = "sequential fetches";
+    break;
+
+  case VECTOR_INT64_RANDOM_FETCH:
+    opname = "random fetches";
     break;
 
   case VECTOR_INT64_STORE:
@@ -277,8 +281,8 @@ static void executeIntegerTests(int mode, int nsize, int niters) {
   fflush(stdout);
 
   for (j = 0; j < nsize; j++) {
-    a[j] = mrand48() << 32 | mrand48();
-    b[j] = mrand48() << 32 | mrand48();
+    a[j] = lrand48() % nsize;
+    b[j] = lrand48();
   }
 
   printf(" done.\n\n");
