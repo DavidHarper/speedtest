@@ -140,6 +140,8 @@ static int executeFPSpeedTest(double *a, double *b, double *c, int nsize,
 
   fprintf(fp, "That corresponds to %.3lf mflops.\n", mflops);
 
+  fflush(fp);
+
   return rc1;
 }
 
@@ -261,12 +263,15 @@ static int executeIntegerSpeedTest(long int *a, long int *b, long int *c, int ns
 
   fprintf(fp, "That corresponds to %.3lf mops.\n", mflops);
 
+  fflush(fp);
+
   return rc1;
 }
 
 static void executeIntegerTests(int mode, int nsize, int niters) {
   long int *a, *b, *c;
   int j;
+  long l;
 
   printf("EXECUTING INTEGER SPEED TESTS\n");
 
@@ -282,7 +287,10 @@ static void executeIntegerTests(int mode, int nsize, int niters) {
 
   for (j = 0; j < nsize; j++) {
     a[j] = lrand48() % nsize;
-    b[j] = lrand48();
+
+    l = lrand48();
+
+    b[j] = l == 0 ? 1 : l;
   }
 
   printf(" done.\n\n");
