@@ -31,7 +31,6 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "\n");
   fprintf(fp, "\tINTEGER\n");
   fprintf(fp, "\tMode\tOperation\n");
-  fprintf(fp, "\t 10\tNO-OP\n");
   fprintf(fp, "\t 11\tFETCH\n");
   fprintf(fp, "\t 12\tRANDOM FETCH\n");
   fprintf(fp, "\t 13\tSTORE\n");
