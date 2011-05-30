@@ -31,13 +31,15 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "\n");
   fprintf(fp, "\tINTEGER\n");
   fprintf(fp, "\tMode\tOperation\n");
+  fprintf(fp, "\t 10\tNO-OP\n");
   fprintf(fp, "\t 11\tFETCH\n");
-  fprintf(fp, "\t 12\tSTORE\n");
-  fprintf(fp, "\t 13\tFETCH AND STORE\n");
-  fprintf(fp, "\t 14\tADD AND STORE\n");
-  fprintf(fp, "\t 15\tSUM\n");
-  fprintf(fp, "\t 15\tMULTIPLY\n");
-  fprintf(fp, "\t 16\tDIVIDE\n");
+  fprintf(fp, "\t 12\tRANDOM FETCH\n");
+  fprintf(fp, "\t 13\tSTORE\n");
+  fprintf(fp, "\t 14\tFETCH AND STORE\n");
+  fprintf(fp, "\t 15\tADD\n");
+  fprintf(fp, "\t 16\tSUM\n");
+  fprintf(fp, "\t 17\tMULTIPLY\n");
+  fprintf(fp, "\t 18\tDIVIDE\n");
 
 }
 
