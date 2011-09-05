@@ -55,63 +55,83 @@ static void printMessage() {
   printf("If you find it useful, please give due credit to the author.\n\n");
 }
 
-static long timeInterval(struct rusage *ru1, struct rusage *ru2) {
-  return (1000000L * (long)ru2->ru_utime.tv_sec + (long)ru2->ru_utime.tv_usec) -
-    (1000000L * (long)ru1->ru_utime.tv_sec + (long)ru1->ru_utime.tv_usec);
+static long getElapsedUserTime(struct rusage *ru) {
+  return (1000000L * (long)ru->ru_utime.tv_sec + (long)ru->ru_utime.tv_usec);
 }
 
-static int executeFPSpeedTest(double *a, double *b, double *c, int nsize,
+static long getElapsedSystemTime(struct rusage *ru) {
+  return (1000000L * (long)ru->ru_stime.tv_sec + (long)ru->ru_stime.tv_usec);
+}
+
+static char *getNameFromMode(int mode) {
+  switch (mode) {
+  case VECTOR_FP_ADD:
+    return "additions";
+
+  case VECTOR_FP_MULTIPLY:
+    return "multiplications";
+
+  case VECTOR_FP_DIVIDE:
+    return "divisions";
+
+  case VECTOR_FP_COSINE:
+    return "cosines";
+
+  case VECTOR_FP_SQRT:
+    return "square roots";
+ 
+  case VECTOR_FP_ATAN2:
+    return "arc-tangents";
+
+  case VECTOR_FP_YLOGX:
+    return "y.log2(x) operations";
+ 
+  case VECTOR_FP_SINCOS:
+    return "combined sine/cosines";
+ 
+  case VECTOR_FP_BEXP:
+    return "binary exponentials";
+ 
+  case VECTOR_INT64_ADD:
+    return "add-and-stores";
+
+  case VECTOR_INT64_SUM:
+    return "sums";
+
+  case VECTOR_INT64_MULTIPLY:
+    return "multiplications";
+
+  case VECTOR_INT64_DIVIDE:
+    return "divisions";
+
+  case VECTOR_INT64_FETCH:
+    return "sequential fetches";
+
+  case VECTOR_INT64_RANDOM_FETCH:
+    return "random fetches";
+
+  case VECTOR_INT64_STORE:
+    return "stores";
+
+  case VECTOR_INT64_FETCH_AND_STORE:
+    return "fetches and stores";
+
+  default:
+    return "unknown operations";
+  }
+}
+
+static int executeSpeedTest(void *a, void *b, void *c, int nsize,
 			     int niters, int mode, FILE *fp) {
   struct rusage ru1, ru2, ru3;
-  char *opname;
+  char *opname = getNameFromMode(mode);
   double mflops;
   long ticks;
   double dticks;
   double dops;
   int rc1, rc2;
   long dt12,dt23;
-
-  switch (mode) {
-  case VECTOR_FP_ADD:
-    opname = "additions";
-    break;
-
-  case VECTOR_FP_MULTIPLY:
-    opname = "multiplications";
-    break;
-
-  case VECTOR_FP_DIVIDE:
-    opname = "divisions";
-    break;
-
-  case VECTOR_FP_COSINE:
-    opname = "cosines";
-    break;
-
-  case VECTOR_FP_SQRT:
-    opname = "square roots";
-    break;
-
-  case VECTOR_FP_ATAN2:
-    opname = "arc-tangents";
-    break;
-
-  case VECTOR_FP_YLOGX:
-    opname = "y.log2(x) operations";
-    break;
-
-  case VECTOR_FP_SINCOS:
-    opname = "combined sine/cosines";
-    break;
-
-  case VECTOR_FP_BEXP:
-    opname = "binary exponentials";
-    break;
-
-  default:
-    opname = "unknown operations";
-    break;
-  }
+  long ut1, ut2, ut3, st1, st2, st3;
 
   getrusage(RUSAGE_SELF, &ru1);
 
@@ -126,9 +146,24 @@ static int executeFPSpeedTest(double *a, double *b, double *c, int nsize,
   if (rc1 == 0 || rc2 == 0)
     return 0L;
 
-  dt12 = timeInterval(&ru1, &ru2);
+  ut1 = getElapsedUserTime(&ru1);
+  st1 = getElapsedSystemTime(&ru1);
 
-  dt23 = timeInterval(&ru2, &ru3);
+  fprintf(fp, "Before loop: user %12ld, system %12ld\n", ut1, st1);
+
+  ut2 = getElapsedUserTime(&ru2);
+  st2 = getElapsedSystemTime(&ru2);
+
+  fprintf(fp, "After loop:  user %12ld, system %12ld\n", ut2, st2);
+
+  ut3 = getElapsedUserTime(&ru3);
+  st3 = getElapsedSystemTime(&ru3);
+
+  fprintf(fp, "After nops:  user %12ld, system %12ld\n", ut3, st3);
+
+  dt12 = ut2 - ut1;
+
+  dt23 = ut3 - ut2;
 
   ticks = dt12 - dt23;
   dticks = (double)ticks;
@@ -137,9 +172,11 @@ static int executeFPSpeedTest(double *a, double *b, double *c, int nsize,
 
   mflops = dops/dticks;
 
+  fprintf(fp, "\n");
+
   fprintf(fp, "It took %.3lf seconds to perform %.3lf million %s.\n", dticks/1.0e6, dops/1.0e6, opname);
 
-  fprintf(fp, "That corresponds to %.3lf mflops.\n", mflops);
+  fprintf(fp, "That corresponds to %.3lf million ops/second.\n", mflops);
 
   fflush(fp);
 
@@ -174,99 +211,16 @@ static void executeFloatingPointTests(int mode, int nsize, int niters) {
     printf("Running ALL speed tests.\n\n");
 
     for (mode = VECTOR_FP_FIRST; mode <= VECTOR_FP_LAST; mode++) {
-      if (executeFPSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
+      if (executeSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
 	printf("\n");
     }
   } else {
-    executeFPSpeedTest(a, b, c, nsize, niters, mode, stdout);
+    executeSpeedTest(a, b, c, nsize, niters, mode, stdout);
   }
 
   free(a);
   free(b);
   free(c);
-}
-
-
-static int executeIntegerSpeedTest(long int *a, long int *b, long int *c, int nsize,
-			     int niters, int mode, FILE *fp) {
-  struct rusage ru1, ru2, ru3;
-  char *opname;
-  double mflops;
-  long ticks;
-  double dticks;
-  double dops;
-  int rc1, rc2;
-  long dt12,dt23;
-
-  switch (mode) {
-  case VECTOR_INT64_ADD:
-    opname = "add-and-stores";
-    break;
-
-  case VECTOR_INT64_SUM:
-    opname = "sums";
-    break;
-
-  case VECTOR_INT64_MULTIPLY:
-    opname = "multiplications";
-    break;
-
-  case VECTOR_INT64_DIVIDE:
-    opname = "divisions";
-    break;
-
-  case VECTOR_INT64_FETCH:
-    opname = "sequential fetches";
-    break;
-
-  case VECTOR_INT64_RANDOM_FETCH:
-    opname = "random fetches";
-    break;
-
-  case VECTOR_INT64_STORE:
-    opname = "stores";
-    break;
-
-  case VECTOR_INT64_FETCH_AND_STORE:
-    opname = "fetches and stores";
-    break;
-
-  default:
-    opname = "unknown operations";
-    break;
-  }
-
-  getrusage(RUSAGE_SELF, &ru1);
-
-  rc1 = vectorOps(a, b, c, nsize, niters, mode);
-
-  getrusage(RUSAGE_SELF, &ru2);
-
-  rc2 = vectorOps(a, b, c, nsize, niters, VECTOR_INT64_NOP);
-
-  getrusage(RUSAGE_SELF, &ru3);
-
-  if (rc1 == 0 || rc2 == 0)
-    return 0L;
-
-  dt12 = timeInterval(&ru1, &ru2);
-
-  dt23 = timeInterval(&ru2, &ru3);
-
-  ticks = dt12 - dt23;
-  dticks = (double)ticks;
-
-  dops = (double)nsize * (double)niters;
-
-  mflops = dops/dticks;
-
-  fprintf(fp, "It took %.3lf seconds to perform %.3lf million %s.\n", dticks/1.0e6, dops/1.0e6, opname);
-
-  fprintf(fp, "That corresponds to %.3lf mops.\n", mflops);
-
-  fflush(fp);
-
-  return rc1;
 }
 
 static void executeIntegerTests(int mode, int nsize, int niters) {
@@ -301,11 +255,11 @@ static void executeIntegerTests(int mode, int nsize, int niters) {
     printf("Running ALL speed tests.\n\n");
 
     for (mode = VECTOR_INT64_FIRST; mode <= VECTOR_INT64_LAST; mode++) {
-      if (executeIntegerSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
+      if (executeSpeedTest(a, b, c, nsize, niters, mode, stdout) != 0)
 	printf("\n");
     }
   } else {
-    executeIntegerSpeedTest(a, b, c, nsize, niters, mode, stdout);
+    executeSpeedTest(a, b, c, nsize, niters, mode, stdout);
   }
 
   free(a);
