@@ -39,7 +39,7 @@ a_vectorops.s: a_vectorops-$(ARCH).m4
 	$(M4) a_vectorops-$(ARCH).m4 > a_vectorops.s
 
 clean:
-	$(RM) *.o a_speedtest c_speedtest speedtest.tar.gz
+	$(RM) *.o a_vectorops.s a_speedtest c_speedtest speedtest.tar.gz
 
 tar: speedtest.tar.gz
 
