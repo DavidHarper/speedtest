@@ -16,7 +16,8 @@ static void printUsage(FILE *fp, char *message) {
   fprintf(fp, "-niters\t\tNumber of iterations over the data vectors\n");
   fprintf(fp, "\n");
   fprintf(fp, "OPTIONAL PARAMETERS:\n");
-  fprintf(fp, "-mode\t\tMode to test\n\n");
+  fprintf(fp, "-mode\t\tMode to test\n");
+  fprintf(fp, "-quiet\t\tKeep output to a minimum\n\n");
   fprintf(fp, "\tFLOATING POINT\n");
   fprintf(fp, "\tMode\tOperation\n");
   fprintf(fp, "\t  1\tADD\n");
@@ -272,8 +273,7 @@ int main(int argc, char **argv) {
   int niters = 0;
   int j;
   int mode = 0;
-
-  printMessage();
+  int quiet = 0;
 
   while (*(++argv)) {
     if (strcmp(*argv, "-nsize") == 0)
@@ -284,12 +284,18 @@ int main(int argc, char **argv) {
 
     if (strcmp(*argv, "-mode") == 0)
       mode = atoi(*(++argv));
+
+    if (strcmp(*argv, "-quiet") == 0)
+      quiet = 1;
   }
 
   if (niters == 0 || nsize == 0) {
     printUsage(stderr, "One or more mandatory parameters are missing");
     exit(1);
   }
+
+  if (!quiet)
+    printMessage();
 
   if (mode >= VECTOR_FP_NOP && mode <= VECTOR_FP_LAST)
     executeFloatingPointTests(mode, nsize, niters);
