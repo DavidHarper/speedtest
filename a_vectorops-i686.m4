@@ -4,7 +4,7 @@
 /
 / C prototype:
 /
-/ void vectorOps(double *a, double *b, double *c, int nsize,
+/ void vectorOps(void *a, void *b, void *c, int nsize,
 /		 int niters, int mode)
 /
 / mode = 0 --> NOP
@@ -16,6 +16,25 @@
 /	 6 --> ATAN2
 /	 7 --> Y LOG2(X)
 /	 8 --> SINCOS
+/        9 --> 2^X - 1
+/
+/ INTEGER
+/ mode = 10 --> NOP
+/	 11 --> SEQUENTIAL FETCH
+/        12 --> RANDOM FETCH
+/        13 --> STORE
+/	 14 --> FETCH AND STORE
+/	 15 --> ADD
+/        16 --> SUM
+/	 17 --> MULTIPLY
+/	 18 --> DIVIDE
+
+define(`SRCA',	`%eax')
+define(`SRCB',	`%ebx')
+define(`CTRA',	`%ecx')
+define(`TEMP',	`%edx')
+define(`CTRB',	`%esi')
+define(`DEST',	`%edi')
 	
 define(`CASE', `
         cmpl    $$1,%eax
@@ -24,22 +43,37 @@ define(`CASE', `
 define(`PROLOG',`
 	.align	4
 .L$1:
-	movl	24(%ebp),%ecx
+	movl	24(%ebp),CTRA
 
 .L$1OuterLoop:
-	movl	%ecx,%esi
+	movl	CTRA,CTRB
 
-	movl	20(%ebp),%ecx
-	movl	8(%ebp),%eax
-	movl	12(%ebp),%ebx
-	movl	16(%ebp),%edx
+	movl	20(%ebp),CTRA
+	movl	8(%ebp),SRCA
+	movl	12(%ebp),SRCB
+	movl	16(%ebp),DEST
 
 .L$1InnerLoop:')
 
-define(`EPILOG',`
-	addl	$`'8,%eax
-	addl	$`'8,%ebx
-	addl	$`'8,%edx
+define(`FP_EPILOG',`
+	addl	$`'8,SRCA
+	addl	$`'8,SRCB
+	addl	$`'8,DEST
+
+	loop	.L$1InnerLoop
+
+	movl	%esi,%ecx
+	loop	.L$1OuterLoop
+
+	movl	24(%ebp),%eax
+
+	jmp	.Lexit')
+
+
+define(`INT_EPILOG',`
+	addl	$`'4,SRCA
+	addl	$`'4,SRCB
+	addl	$`'4,DEST
 
 	loop	.L$1InnerLoop
 
@@ -59,8 +93,10 @@ vectorOps:
 /	Set up the stack frame
 	pushl	%ebp
 	movl	%esp,%ebp
+
 /	Save registers that we want to restore later
 	pushl	%esi
+	pushl	%edi
 	pushl	%ebx
 
 /	Test niters > 0
@@ -89,73 +125,133 @@ vectorOps:
 	CASE(8, sincos)
 	CASE(9, exp)
 
+	CASE(10, inop)
+	CASE(11, ifetch)
+	CASE(12, irandomfetch)
+	CASE(13, istore)
+	CASE(14, ifetchandstore)
+	CASE(15, iadd)
+	CASE(16, isum)
+/	CASE(17, imultiply)
+/	CASE(18, idivide)
+
 /	mode lies outside the range, so exit
 	xorl	%eax,%eax
 	jmp	.Lexit
 
+/----- Floating-point tests -----
+
 	PROLOG(nop)
-	EPILOG(nop)
+	FP_EPILOG(nop)
 
 	PROLOG(add)
-	fldl	(%eax)
-	faddl	(%ebx)
-	fstpl	(%edx)
-	EPILOG(add)
+	fldl	(SRCA)
+	faddl	(SRCB)
+	fstpl	(DEST)
+	FP_EPILOG(add)
 
 	PROLOG(multiply)
-	fldl	(%eax)
-	fmull	(%ebx)
-	fstpl	(%edx)
-	EPILOG(multiply)
+	fldl	(SRCA)
+	fmull	(SRCB)
+	fstpl	(DEST)
+	FP_EPILOG(multiply)
 
 	PROLOG(divide)
-	fldl	(%eax)
-	fdivrl	(%ebx)
-	fstpl	(%edx)
-	EPILOG(divide)
+	fldl	(SRCA)
+	fdivrl	(SRCB)
+	fstpl	(DEST)
+	FP_EPILOG(divide)
 
 	PROLOG(cosine)
-	fldl	(%eax)
+	fldl	(SRCA)
 	fcos
-	fstpl	(%edx)
-	EPILOG(cosine)
+	fstpl	(DEST)
+	FP_EPILOG(cosine)
 
 	PROLOG(sqrt)
-	fldl	(%eax)
+	fldl	(SRCA)
 	fsqrt
-	fstpl	(%edx)
-	EPILOG(sqrt)
+	fstpl	(DEST)
+	FP_EPILOG(sqrt)
 
 	PROLOG(atan)
-	fldl	(%eax)
-	fldl	(%ebx)
+	fldl	(SRCA)
+	fldl	(SRCB)
 	fpatan
-	fstpl	(%edx)
-	EPILOG(atan)
+	fstpl	(DEST)
+	FP_EPILOG(atan)
 
 	PROLOG(ylogx)
-	fldl	(%eax)
-	fldl	(%ebx)
+	fldl	(SRCA)
+	fldl	(SRCB)
 	fyl2x
-	fstpl	(%edx)
-	EPILOG(ylogx)
+	fstpl	(DEST)
+	FP_EPILOG(ylogx)
 
 	PROLOG(sincos)
-	fldl	(%eax)
+	fldl	(SRCA)
 	fsincos
-	fstpl	(%edx)
-	fstpl	(%edx)
-	EPILOG(sincos)
+	fstpl	(DEST)
+	fstpl	(DEST)
+	FP_EPILOG(sincos)
 
 	PROLOG(exp)
-	fldl	(%eax)
+	fldl	(SRCA)
 	f2xm1
-	fstpl	(%edx)
-	EPILOG(exp)
+	fstpl	(DEST)
+	FP_EPILOG(exp)
+
+/----- Integer tests -----
+
+	PROLOG(inop)
+	INT_EPILOG(inop)
+
+	PROLOG(ifetch)
+	movl	(SRCA),TEMP
+	INT_EPILOG(ifetch)
+
+	PROLOG(irandomfetch)
+	movl	(SRCA),TEMP
+	INT_EPILOG(irandomfetch)
+
+	PROLOG(istore)
+	movl	TEMP,(DEST)
+	INT_EPILOG(istore)
+
+	PROLOG(ifetchandstore)
+	movl	(SRCA),TEMP
+	movl	TEMP,(DEST)
+	INT_EPILOG(ifetchandstore)
+
+	PROLOG(iadd)
+	movl	(SRCA),TEMP
+	addl	(SRCB),TEMP
+	movl	TEMP,(DEST)
+	INT_EPILOG(iadd)
+
+	PROLOG(isum)
+	addl	(SRCA),TEMP
+	INT_EPILOG(isum)
+
+/	Multiplication and division are not implemented
+/	in the 32-bit version, as they require the EAX
+/	and EDX registers.
+/
+/	PROLOG(imultiply)
+/	movl	(SRCA),TEMP
+/	mull	(SRCB)
+/	INT_EPILOG(imultiply)
+
+/	PROLOG(idivide)
+/	xorl	TEMP,TEMP
+/	movl	(SRCA),TEMP
+/	divl	(SRCB)
+/	INT_EPILOG(idivide)
 
 .Lexit:
 /	Restore the saved registers
 	popl	%ebx
+	popl	%edi
 	popl	%esi
 /	Clear up the stack frame and return
 	leave
