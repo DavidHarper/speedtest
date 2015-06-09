@@ -1,71 +1,71 @@
-/ speedtest : a CPU speed test utility
-/
-/ Copyright (C) 2013 David Harper at obliquity.com
-/
-/ This program is free software: you can redistribute it and/or modify
-/ it under the terms of the GNU General Public License as published by
-/ the Free Software Foundation, either version 3 of the License, or
-/ (at your option) any later version.
-/
-/ This program is distributed in the hope that it will be useful,
-/ but WITHOUT ANY WARRANTY; without even the implied warranty of
-/ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-/ GNU General Public License for more details.
-/
-/ You should have received a copy of the GNU General Public License
-/ along with this program.  If not, see [http://www.gnu.org/licenses/].
+#--- speedtest : a CPU speed test utility
+#---
+#--- Copyright (C) 2013 David Harper at obliquity.com
+#---
+#--- This program is free software: you can redistribute it and/or modify
+#--- it under the terms of the GNU General Public License as published by
+#--- the Free Software Foundation, either version 3 of the License, or
+#--- (at your option) any later version.
+#---
+#--- This program is distributed in the hope that it will be useful,
+#--- but WITHOUT ANY WARRANTY; without even the implied warranty of
+#--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#--- GNU General Public License for more details.
+#---
+#--- You should have received a copy of the GNU General Public License
+#--- along with this program.  If not, see [http://www.gnu.org/licenses/].
 
-/ C prototype:
-/
-/ int vectorOps(void *a, void *b, void *c, int nsize,
-/		int niters, int mode)
-/
-/ FLOATING POINT
-/ mode =  0 --> NOP
-/	  1 --> ADD
-/	  2 --> MULTIPLY
-/	  3 --> DIVIDE
-/	  4 --> COSINE
-/	  5 --> SQRT
-/	  6 --> ATAN2
-/	  7 --> Y LOG2(X)
-/	  8 --> SINCOS
-/	  9 --> 2^X - 1
-/
-/ INTEGER
-/ mode = 10 --> NOP
-/	 11 --> SEQUENTIAL FETCH
-/        12 --> RANDOM FETCH
-/        13 --> STORE
-/	 14 --> FETCH AND STORE
-/	 15 --> ADD
-/        16 --> SUM
-/	 17 --> MULTIPLY
-/	 18 --> DIVIDE
+#--- C prototype:
+#---
+#--- int vectorOps(void *a, void *b, void *c, int nsize,
+#---		int niters, int mode)
+#---
+#--- FLOATING POINT
+#--- mode =  0 --> NOP
+#---	  1 --> ADD
+#---	  2 --> MULTIPLY
+#---	  3 --> DIVIDE
+#---	  4 --> COSINE
+#---	  5 --> SQRT
+#---	  6 --> ATAN2
+#---	  7 --> Y LOG2(X)
+#---	  8 --> SINCOS
+#---	  9 --> 2^X - 1
+#---
+#--- INTEGER
+#--- mode = 10 --> NOP
+#---	 11 --> SEQUENTIAL FETCH
+#---        12 --> RANDOM FETCH
+#---        13 --> STORE
+#---	 14 --> FETCH AND STORE
+#---	 15 --> ADD
+#---        16 --> SUM
+#---	 17 --> MULTIPLY
+#---	 18 --> DIVIDE
 
-/ Register usage
-/ --------------
-/
-/ Input parameters:
-/
-/ RDI  *a
-/ RSI  *b
-/ RDX  *c
-/ ECX  nsize
-/ R8D  niters
-/ R9D  mode
-/
-/ Globals:
-/
-/ R9   *a
-/ R10  *b
-/ R11  *c
-/ R12  saved value of nsize
-/
-/ Within inner loop:
-/
-/ ECX  loop counter
-/ RSI  index variable
+#--- Register usage
+#--- --------------
+#---
+#--- Input parameters:
+#---
+#--- RDI  *a
+#--- RSI  *b
+#--- RDX  *c
+#--- ECX  nsize
+#--- R8D  niters
+#--- R9D  mode
+#---
+#--- Globals:
+#---
+#--- R9   *a
+#--- R10  *b
+#--- R11  *c
+#--- R12  saved value of nsize
+#---
+#--- Within inner loop:
+#---
+#--- ECX  loop counter
+#--- RSI  index variable
 
 define(`SRCA',	``('%r9,%rsi,8`)'')
 define(`SRCB',	``('%r10,%rsi,8`)'')
@@ -75,7 +75,7 @@ define(`CASE', `
         cmp     $$1,%r9d
         je      .L$2')
 
-/----- Floating-point loop prolog and epilog -----
+#-------- Floating-point loop prolog and epilog -----
 
 define(`FP_PROLOG',`
 	.align	4
@@ -111,7 +111,7 @@ define(`FP_EPILOG',`
 
 	ret')
 
-/----- Integer loop prolog and epilog -----
+#-------- Integer loop prolog and epilog -----
 
 define(`INT_PROLOG',`
 	.align	4
@@ -149,16 +149,18 @@ define(`INT_EPILOG',`
 	ret')
 
 
-/----- The code begins here -----
+#-------- The code begins here -----
 
 	.text
 
 	.align	4
 .globl	vectorOps
-	.type	vectorOps,@function
+.globl	_vectorOps
+#---	.type	vectorOps,@function
 vectorOps:
+_vectorOps:
 
-/	Test niters > 0
+#---	Test niters > 0
 	testl	%ecx,%ecx
 	jg	.L1
 
@@ -167,7 +169,7 @@ vectorOps:
 	ret
 .L1:
 
-/	Test nsize > 0
+#---	Test nsize > 0
 	testl	%r8d,%r8d
 	jg	.L2
 
@@ -175,7 +177,7 @@ vectorOps:
 
 	ret
 .L2:
-/	On the value of mode, skip to the relevant section
+#---	On the value of mode, skip to the relevant section
 	CASE(0, nop)
 	CASE(1, add)
 	CASE(2, multiply)
@@ -197,10 +199,10 @@ vectorOps:
 	CASE(17, imultiply)
 	CASE(18, idivide)
 
-/	mode lies outside the range, so exit
+#---	mode lies outside the range, so exit
 	ret
 
-/----- Floating-point tests -----
+#-------- Floating-point tests -----
 
 	FP_PROLOG(nop)
 	FP_EPILOG(nop)
@@ -262,7 +264,7 @@ vectorOps:
 	fstpl	DEST
 	FP_EPILOG(exp)
 
-/----- Integer tests -----
+#-------- Integer tests -----
 
 	INT_PROLOG(inop)
 	nop
@@ -307,6 +309,6 @@ vectorOps:
 	INT_EPILOG(idivide)
 
 .Lend:
-	.size	vectorOps,.Lend-vectorOps
+#---	size	vectorOps,.Lend-vectorOps
 
 	.ident	"David Harper at www.obliquity.com"
